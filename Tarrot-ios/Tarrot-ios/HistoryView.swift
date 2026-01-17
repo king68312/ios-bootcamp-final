@@ -1,12 +1,12 @@
 import SwiftUI
 
 struct HistoryView: View {
-    @Environment(FortuneHistoryManager.self) var historyManager
+    @Environment(FortuneHistoryManager.self) var historyManager: FortuneHistoryManager?
 
     var body: some View {
         NavigationStack {
             Group {
-                if historyManager.history.isEmpty {
+                if historyManager?.history.isEmpty ?? true {
                     VStack(spacing: 16) {
                         Image(systemName: "clock")
                             .font(.system(size: 60))
@@ -19,12 +19,14 @@ struct HistoryView: View {
                     }
                 } else {
                     List {
-                        ForEach(historyManager.history) { result in
+                        ForEach(historyManager?.history ?? []) { result in
                             NavigationLink(destination: HistoryDetailView(result: result)) {
                                 HistoryRowView(result: result)
                             }
                         }
-                        .onDelete(perform: historyManager.deleteResult)
+                        .onDelete { offsets in
+                            historyManager?.deleteResult(at: offsets)
+                        }
                     }
                     .listStyle(.plain)
                 }
@@ -32,10 +34,10 @@ struct HistoryView: View {
             .navigationTitle("履歴")
             #if os(iOS)
             .toolbar {
-                if !historyManager.history.isEmpty {
+                if !(historyManager?.history.isEmpty ?? true) {
                     ToolbarItem(placement: .navigationBarTrailing) {
                         Button(action: {
-                            historyManager.clearHistory()
+                            historyManager?.clearHistory()
                         }) {
                             Text("全削除")
                                 .foregroundColor(.red)

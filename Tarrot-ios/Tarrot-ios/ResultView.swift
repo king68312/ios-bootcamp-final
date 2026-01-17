@@ -1,10 +1,13 @@
+//占いの結果を表示
 import SwiftUI
 
 struct ResultView: View {
     let card: TarotCard
     let category: String
+    var onGoHome: (() -> Void)?
+
     @Environment(\.dismiss) private var dismiss
-    @Environment(FortuneHistoryManager.self) var historyManager
+    @Environment(FortuneHistoryManager.self) var historyManager: FortuneHistoryManager?
 
     @State private var aiReading: String = ""
     @State private var isLoading: Bool = true
@@ -12,30 +15,31 @@ struct ResultView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 Text(card.emoji)
-                    .font(.system(size: 100))
+                    .font(.system(size: 70))
 
                 Text(card.name)
-                    .font(.largeTitle)
+                    .font(.title)
                     .fontWeight(.bold)
 
                 Text(card.meaning)
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
                 Divider()
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
 
                 // AI解説セクション
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "sparkles")
                             .foregroundColor(.purple)
                         Text("AIからのメッセージ")
-                            .font(.headline)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                     }
 
                     if isLoading {
@@ -44,72 +48,65 @@ struct ResultView: View {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle())
                             Text("占い結果を生成中...")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
                             Spacer()
                         }
-                        .padding()
+                        .padding(.vertical, 8)
                     } else {
                         Text(aiReading)
-                            .font(.body)
-                            .lineSpacing(4)
+                            .font(.subheadline)
+                            .lineSpacing(3)
                     }
                 }
-                .padding()
+                .padding(12)
                 .background(Color.purple.opacity(0.1))
                 .cornerRadius(12)
                 .padding(.horizontal)
 
-                Spacer().frame(height: 20)
-
                 // ボタン
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     Button(action: { dismiss() }) {
                         Text("もう一度占う")
-                            .font(.title3)
+                            .font(.body)
                             .fontWeight(.medium)
                             .foregroundColor(.white)
-                            .padding()
+                            .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)
                             .background(Color.purple)
-                            .cornerRadius(12)
+                            .cornerRadius(10)
                     }
 
-                    Button(action: goToHome) {
+                    Button(action: {
+                        onGoHome?()
+                    }) {
                         Text("ホームに戻る")
-                            .font(.title3)
+                            .font(.body)
                             .fontWeight(.medium)
                             .foregroundColor(.purple)
-                            .padding()
+                            .padding(.vertical, 12)
                             .frame(maxWidth: .infinity)
                             .background(Color.purple.opacity(0.1))
-                            .cornerRadius(12)
+                            .cornerRadius(10)
                     }
                 }
                 .padding(.horizontal)
+                .padding(.top, 8)
             }
             .padding()
         }
         .navigationTitle("\(category)の結果")
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await fetchAIReading()
         }
     }
 
     private func fetchAIReading() async {
-        do {
-            let reading = try await OpenAIClient.shared.generateReading(card: card, category: category)
-            await MainActor.run {
-                aiReading = reading
-                isLoading = false
-                saveToHistory()
-            }
-        } catch {
-            await MainActor.run {
-                aiReading = "占い結果の生成中にエラーが発生しました。\n\n\(card.meaning)"
-                isLoading = false
-                saveToHistory()
-            }
-        }
+        let reading = await OpenAIClient.shared.generateReading(card: card, category: category)
+        aiReading = reading
+        isLoading = false
+        saveToHistory()
     }
 
     private func saveToHistory() {
@@ -121,18 +118,7 @@ struct ResultView: View {
             category: category,
             aiReading: aiReading
         )
-        historyManager.saveResult(result)
-    }
-
-    private func goToHome() {
-        // NavigationStackのルートに戻る
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            rootViewController.dismiss(animated: true)
-        }
-        // 複数回dismissを呼んでルートに戻る
-        dismiss()
+        historyManager?.saveResult(result)
     }
 }
 
@@ -142,12 +128,12 @@ struct HistoryDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 Text(result.card.emoji)
-                    .font(.system(size: 100))
+                    .font(.system(size: 70))
 
                 Text(result.card.name)
-                    .font(.largeTitle)
+                    .font(.title)
                     .fontWeight(.bold)
 
                 Text(result.formattedDate)
@@ -155,27 +141,28 @@ struct HistoryDetailView: View {
                     .foregroundColor(.secondary)
 
                 Text(result.card.meaning)
-                    .font(.body)
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
 
                 Divider()
-                    .padding(.vertical, 8)
+                    .padding(.vertical, 4)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         Image(systemName: "sparkles")
                             .foregroundColor(.purple)
                         Text("AIからのメッセージ")
-                            .font(.headline)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                     }
 
                     Text(result.aiReading)
-                        .font(.body)
-                        .lineSpacing(4)
+                        .font(.subheadline)
+                        .lineSpacing(3)
                 }
-                .padding()
+                .padding(12)
                 .background(Color.purple.opacity(0.1))
                 .cornerRadius(12)
                 .padding(.horizontal)
@@ -183,6 +170,7 @@ struct HistoryDetailView: View {
             .padding()
         }
         .navigationTitle("\(result.category)の結果")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }
 

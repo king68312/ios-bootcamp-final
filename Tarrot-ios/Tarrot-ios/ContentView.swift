@@ -1,3 +1,4 @@
+//下に表示されるタブ 
 import SwiftUI
 
 struct ContentView: View {

@@ -4,9 +4,11 @@ import SwiftUI
 
 struct FortuneView: View {
     let category: String
+    var onGoHome: (() -> Void)?
+
     @State private var drawnCard: TarotCard?
     @State private var isAnimating: Bool = false
-    @Environment(FortuneHistoryManager.self) var historyManager
+    @State private var showResult: Bool = false
 
     var body: some View {
         VStack(spacing: 30) {
@@ -37,8 +39,7 @@ struct FortuneView: View {
                     }
                 } else {
                     VStack(spacing: 8) {
-                        Text("🎴")
-                            .font(.system(size: 80))
+                            
                         Text("タップしてカードを引く")
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.8))
@@ -48,8 +49,8 @@ struct FortuneView: View {
             .scaleEffect(isAnimating ? 1.05 : 1.0)
             .animation(.easeInOut(duration: 0.3), value: isAnimating)
 
-            if let card = drawnCard {
-                NavigationLink(destination: ResultView(card: card, category: category)) {
+            if drawnCard != nil {
+                Button(action: { showResult = true }) {
                     Text("結果を見る")
                         .font(.title2)
                         .fontWeight(.bold)
@@ -78,6 +79,17 @@ struct FortuneView: View {
         }
         .padding()
         .navigationTitle(category)
+        .navigationDestination(isPresented: $showResult) {
+            if let card = drawnCard {
+                ResultView(card: card, category: category, onGoHome: onGoHome)
+            }
+        }
+        .onChange(of: showResult) { oldValue, newValue in
+            // ResultViewから戻ってきた時にカードをリセット
+            if oldValue == true && newValue == false {
+                drawnCard = nil
+            }
+        }
     }
 
     private func drawCard() {
@@ -94,6 +106,5 @@ struct FortuneView: View {
 #Preview {
     NavigationStack {
         FortuneView(category: "恋愛")
-            .environment(FortuneHistoryManager())
     }
 }

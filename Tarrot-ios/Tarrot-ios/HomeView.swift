@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @State private var greetingMessage: String = ""
+    @State private var navigationPath = NavigationPath()
 
     private let greetingMessages = [
         "今日は何を占いますか？",
@@ -14,7 +15,7 @@ struct HomeView: View {
     ]
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             VStack(spacing: 20) {
                 Text("🔮 タロット占い")
                     .font(.largeTitle)
@@ -26,23 +27,23 @@ struct HomeView: View {
                     .multilineTextAlignment(.center)
 
                 VStack(spacing: 12) {
-                    NavigationLink(destination: FortuneView(category: "恋愛")) {
+                    NavigationLink(value: "恋愛") {
                         CategoryButton(emoji: "💕", title: "恋愛")
                     }
 
-                    NavigationLink(destination: FortuneView(category: "仕事")) {
+                    NavigationLink(value: "仕事") {
                         CategoryButton(emoji: "💼", title: "仕事")
                     }
 
-                    NavigationLink(destination: FortuneView(category: "金運")) {
+                    NavigationLink(value: "金運") {
                         CategoryButton(emoji: "💰", title: "金運")
                     }
 
-                    NavigationLink(destination: FortuneView(category: "健康")) {
+                    NavigationLink(value: "健康") {
                         CategoryButton(emoji: "💪", title: "健康")
                     }
 
-                    NavigationLink(destination: FortuneView(category: "総合運")) {
+                    NavigationLink(value: "総合運") {
                         CategoryButton(emoji: "🌟", title: "総合運")
                     }
                 }
@@ -50,12 +51,14 @@ struct HomeView: View {
 
                 Spacer()
             }
-
-
-
             .padding()
             .onAppear {
                 greetingMessage = greetingMessages.randomElement() ?? greetingMessages[0]
+            }
+            .navigationDestination(for: String.self) { category in
+                FortuneView(category: category, onGoHome: {
+                    navigationPath = NavigationPath()
+                })
             }
         }
     }
